@@ -1,0 +1,22 @@
+# This line tells pip to look for packages in the PyTorch CUDA 11.8 repository
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# Core ML and Data Libraries (pip will now find the GPU versions)
+torch
+torchvision
+torchaudio
+numpy
+Pillow
+einops
+timm
+ema-pytorch
+accelerate
+denoising-diffusion-pytorch
+
+# Video and File Handling
+opencv-python
+pyyaml
+
+# Utilities
+tqdm
+matplotlib
