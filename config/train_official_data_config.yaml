@@ -28,5 +28,5 @@ trainer:
   ema_decay: 0.995
   amp: true
   save_and_sample_every: 5000 # Saves a checkpoint every 5000 steps
-  results_folder: /workspace/my-rs-diffusion/my_trained_models # <-- Folder where your new .pt files will be saved
+  results_folder: /workspace/RSD/my_trained_models # <-- Folder where your new .pt files will be saved
   log_path: my_first_training_run # Name for the wandb log
