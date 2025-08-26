@@ -14,8 +14,8 @@ diffusion:
   objective: pred_x0
 
 dataset:
-  train_folder: /workspace/my-rs-diffusion/RS-Diffusion/train # <-- Path to your folder with all the .npz files
-  test_folder: ./RSD_dataset/test # We can use the same for testing/sampling
+  train_folder: /workspace/RSD/RS-Diffusion/train # <-- Path to your folder with all the .npz files
+  test_folder: /workspace/RSD/RS-Diffusion/test # We can use the same for testing/sampling
   image_size: 256 # <-- Must match the size in the diffusion section
   augment_horizontal_flip: false
 
