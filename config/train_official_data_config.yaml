@@ -20,11 +20,11 @@ dataset:
   augment_horizontal_flip: false
 
 trainer:
-  train_batch_size: 16
-  test_batch_size: 2
+  train_batch_size: 64
+  test_batch_size: 16
   train_lr: 0.0001
   train_num_steps: 200000 # Total training steps. 200k is a good long run.
-  gradient_accumulate_every: 8
+  gradient_accumulate_every: 1
   ema_decay: 0.995
   amp: true
   save_and_sample_every: 5000 # Saves a checkpoint every 5000 steps
