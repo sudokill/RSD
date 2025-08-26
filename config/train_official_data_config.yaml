@@ -24,7 +24,7 @@ trainer:
   test_batch_size: 2
   train_lr: 0.0001
   train_num_steps: 200000 # Total training steps. 200k is a good long run.
-  gradient_accumulate_every: 2
+  gradient_accumulate_every: 8
   ema_decay: 0.995
   amp: true
   save_and_sample_every: 5000 # Saves a checkpoint every 5000 steps
