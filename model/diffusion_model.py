@@ -1120,71 +1120,82 @@ class Trainer(object):
         accelerator.print('training complete')
         accelerator.end_training()
 
-    def sample(self, save_root, device):
-        self.ema.ema_model.eval()
-        with torch.inference_mode():
-            milestone = self.step // self.save_and_sample_every
-            #batches = num_to_groups(self.num_samples, self.batch_size)  
-            
+def sample(self, save_root, device):
+    # If using Accelerate/DDP, only the main process should run sampling
+    if hasattr(self, "accelerator") and not self.accelerator.is_main_process:
+        return
 
-            for idx, test_data in tqdm(enumerate(self.test_dl), total=len(self.test_dl)):
-            #for idx in tqdm(range(self.test_long), total=self.test_long):
-                #test_data = next(self.test_dl)
-                #data1 = next(self.dl)
-                flow = test_data[0].to(device)
-                rs = test_data[1].to(device)
-                #gs = flow_warp(rs, flow, pad="zeros", mode="bilinear").to(device)
-                gs = test_data[2].to(device)
+    self.ema.ema_model.eval()
+    with torch.inference_mode():
+        milestone = self.step // self.save_and_sample_every
 
-                show_rs = test_data[3].to(device)
-                show_gs = test_data[4].to(device)
+        for idx, test_data in tqdm(enumerate(self.test_dl), total=len(self.test_dl)):
+            # Robustly unpack the batch. Expected (flow, rs, gs, [show_rs], [show_gs], [save_path])
+            if not isinstance(test_data, (list, tuple)):
+                raise TypeError(f"Unexpected batch type: {type(test_data)}. Expected list/tuple.")
+
+            L = len(test_data)
+            if L < 3:
+                raise ValueError(f"Unexpected test batch length {L}. Expected at least 3 items "
+                                 "(flow, rs, gs[, show_rs, show_gs, save_path]).")
+
+            flow = test_data[0].to(device)
+            rs   = test_data[1].to(device)
+            gs   = test_data[2].to(device)
+
+            # Fallbacks: if show_* not provided, reuse corresponding tensors
+            show_rs = test_data[3].to(device) if L >= 4 else rs
+            show_gs = test_data[4].to(device) if L >= 5 else gs
+
+            # Save path fallback: if not provided, synthesize simple names
+            if L >= 6:
                 save_path = test_data[5]
+            else:
+                # Create deterministic names per-batch if none provided
+                bsz = rs.shape[0]
+                save_path = [f"{milestone:06d}_{idx:06d}_{i:03d}" for i in range(bsz)]
 
+            # Classes: zeros (long) of batch size
+            image_classes = torch.zeros([rs.shape[0]], dtype=torch.long, device=device)
 
+            # Model sampling
+            out_flow = self.ema.ema_model.sample(classes=image_classes, condition=rs, cond_scale=1)
 
-                #gs = test_data[2].to(device) 
-                #print(rs.shape) 
-                image_classes =  torch.zeros([rs.shape[0]]).to(device).to(torch.int64)
-                out_flow = self.ema.ema_model.sample(classes=image_classes,condition = rs,cond_scale=1)
-                #out_flow = upsample2d_flow_as(out_flow,show_rs, mode="bilinear", if_rate=True) 
-                flow_warp_show1 = upsample2d_flow_as(out_flow,show_rs, mode="bilinear", if_rate=True) 
-                flow_warp_show2 = upsample2d_flow_as(flow,show_rs, mode="bilinear", if_rate=True) 
-                
-                all_images = flow_warp(show_rs, flow_warp_show1, pad="zeros", mode="bilinear")
+            # Resize flows to match visualization tensors
+            flow_warp_show1 = upsample2d_flow_as(out_flow, show_rs, mode="bilinear", if_rate=True)
+            flow_warp_show2 = upsample2d_flow_as(flow,     show_rs, mode="bilinear", if_rate=True)
 
-                for i in range(all_images.shape[0]):
-                    pred_gs1 = all_images[i]
-                    path_r = save_path[i]
-                    
-                    if not os.path.exists(str(save_root/'image')):
-                        os.makedirs(str(save_root/'image'))
-                    if not os.path.exists(str(save_root/'flow')):
-                        os.makedirs(str(save_root/'flow'))
-                    if not os.path.exists(str(save_root/'pred_flow')):
-                        os.makedirs(str(save_root/'pred_flow'))
-                    if not os.path.exists(str(save_root/'true_flow')):
-                        os.makedirs(str(save_root/'true_flow'))
-                        
-                    image_path = os.path.join(str(save_root/'image'), path_r + '.jpg')
-                    utils.save_image(pred_gs1, image_path)
+            # Warp and produce images
+            all_images = flow_warp(show_rs, flow_warp_show1, pad="zeros", mode="bilinear")
 
+            # Ensure output dirs exist
+            os.makedirs(str(save_root / 'image'), exist_ok=True)
+            os.makedirs(str(save_root / 'flow'), exist_ok=True)
+            os.makedirs(str(save_root / 'pred_flow'), exist_ok=True)
+            os.makedirs(str(save_root / 'true_flow'), exist_ok=True)
 
-                    flow1 =  flow_warp_show1[i].detach().cpu().numpy().transpose((1,2,0))
-                    flow2 =  flow_warp_show2[i].detach().cpu().numpy().transpose((1,2,0))
-                    
-                    ture_flow_path1 = os.path.join(str(save_root/'pred_flow'), path_r + '.npy')
-                    np.save(ture_flow_path1,flow1)
-                    ture_flow_path2 = os.path.join(str(save_root/'true_flow'), path_r + '.npy')
-                    np.save(ture_flow_path2,flow2)
-                    
-                    #flow3 =  flow_warp_show1[i].detach().cpu().numpy().transpose((1,2,0))
-                    #flow4 =  flow_warp_show2[i].detach().cpu().numpy().transpose((1,2,0))
-                    
-                    
-                    flow1 = flow_to_image(flow1)
-                    flow2 = flow_to_image(flow2)
-                    result_flow = np.concatenate((flow1, flow2), axis=1)
-                    flow_path = os.path.join(str(save_root/'flow'), path_r + '.jpg')
-                    cv2.imwrite(flow_path,result_flow)
-                    #cv2.imwrite('warp_flow.jpg',flow2)
-     
+            # Save per-sample outputs
+            for i in range(all_images.shape[0]):
+                pred_gs1 = all_images[i]
+                path_r = save_path[i] if isinstance(save_path, (list, tuple)) else str(save_path)
+
+                image_path = os.path.join(str(save_root / 'image'), path_r + '.jpg')
+                utils.save_image(pred_gs1, image_path)
+
+                flow1 = flow_warp_show1[i].detach().cpu().numpy().transpose((1, 2, 0))
+                flow2 = flow_warp_show2[i].detach().cpu().numpy().transpose((1, 2, 0))
+
+                ture_flow_path1 = os.path.join(str(save_root / 'pred_flow'), path_r + '.npy')
+                np.save(ture_flow_path1, flow1)
+                ture_flow_path2 = os.path.join(str(save_root / 'true_flow'), path_r + '.npy')
+                np.save(ture_flow_path2, flow2)
+
+                flow1_img = flow_to_image(flow1)
+                flow2_img = flow_to_image(flow2)
+                result_flow = np.concatenate((flow1_img, flow2_img), axis=1)
+                flow_path = os.path.join(str(save_root / 'flow'), path_r + '.jpg')
+                cv2.imwrite(flow_path, result_flow)
+
+    # If using Accelerate/DDP, let others proceed after main finishes sampling
+    if hasattr(self, "accelerator"):
+        self.accelerator.wait_for_everyone()
