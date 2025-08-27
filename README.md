@@ -10,6 +10,7 @@ git clone https://github.com/sudokill/RSD/
 python3 -m venv venv
 
 source venv/bin/activate
+
 pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 python -c "import torch; print(torch.cuda.is_available())"
