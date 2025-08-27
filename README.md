@@ -22,6 +22,7 @@ git clone https://huggingface.co/datasets/Yzl-code/RS-Diffusion
 --MULTI GPU--
 
 accelerate config
+
 accelerate launch train_RS_real.py --config config/train_official_data_config.yaml
 
 --SINGLE GPU--
