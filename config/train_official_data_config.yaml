@@ -23,7 +23,7 @@ trainer:
   train_batch_size: 28
   test_batch_size: 8
   train_lr: 0.0001
-  train_num_steps: 200000 # Total training steps. 200k is a good long run.
+  train_num_steps: 150000 # Total training steps. 200k is a good long run.
   gradient_accumulate_every: 3
   ema_decay: 0.995
   amp: true
