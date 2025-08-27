@@ -17,7 +17,7 @@ dataset:
   train_folder: /workspace/RSD/RS-Diffusion/train # <-- Path to your folder with all the .npz files
   test_folder: /workspace/RSD/RS-Diffusion/test # We can use the same for testing/sampling
   image_size: 128 # <-- Must match the size in the diffusion section
-  augment_horizontal_flip: true
+  augment_horizontal_flip: false
 
 trainer:
   train_batch_size: 28
