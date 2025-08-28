@@ -974,8 +974,8 @@ class Trainer(object):
 
         #assert len(self.ds) >= 100, 'you should have at least 100 images in your folder. at least 10k images recommended'
 
-        dl = DataLoader(self.train_dataset, batch_size = train_batch_size, shuffle = True, pin_memory = True, num_workers = cpu_count() // 2)
-        self.test_dl = DataLoader(self.test_dataset, batch_size = test_batch_size, shuffle = False, pin_memory = True, num_workers = cpu_count() // 2)
+        dl = DataLoader(self.train_dataset, batch_size = train_batch_size, shuffle = True, pin_memory = True, num_workers = 0)
+        self.test_dl = DataLoader(self.test_dataset, batch_size = test_batch_size, shuffle = False, pin_memory = True, num_workers = 0)
         self.test_long = len(self.test_dl)
         
         dl = self.accelerator.prepare(dl)
@@ -1153,11 +1153,7 @@ class Trainer(object):
                 all_images = flow_warp(show_rs, flow_warp_show1, pad="zeros", mode="bilinear")
 
                 for i in range(all_images.shape[0]):
-                    show_rs1 = show_rs[i]
-                    show_gs1 = show_gs[i].to(device)
                     pred_gs1 = all_images[i]
-                    matrices = [show_rs1, show_gs1, pred_gs1]
-                    result_matrix = torch.cat(matrices, axis=2)
                     path_r = save_path[i]
                     
                     if not os.path.exists(str(save_root/'image')):
@@ -1170,7 +1166,8 @@ class Trainer(object):
                         os.makedirs(str(save_root/'true_flow'))
                         
                     image_path = os.path.join(str(save_root/'image'), path_r + '.jpg')
-                    utils.save_image(result_matrix, image_path)
+                    utils.save_image(pred_gs1, image_path)
+
 
                     flow1 =  flow_warp_show1[i].detach().cpu().numpy().transpose((1,2,0))
                     flow2 =  flow_warp_show2[i].detach().cpu().numpy().transpose((1,2,0))
