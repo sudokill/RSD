@@ -26,7 +26,7 @@ trainer:
   train_num_steps: 150000 # Total training steps. 200k is a good long run.
   gradient_accumulate_every: 3
   ema_decay: 0.995
-  amp: true
+  amp: false
   save_and_sample_every: 100 # Saves a checkpoint every 5000 steps
   results_folder: /workspace/RSD/my_trained_models # <-- Folder where your new .pt files will be saved
   log_path: my_first_training_run # Name for the wandb log
