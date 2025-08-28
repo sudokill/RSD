@@ -7,26 +7,28 @@ model:
   cond_drop_prob: 0
 
 diffusion:
-  image_size: 128 # The original model was trained at 256x256
+  image_size: 256 # The original model was trained at 256x256
   timesteps: 1000
   sampling_timesteps: 8
-  beta_schedule: linear
-  objective: pred_x0
+  beta_schedule: "linear"
+  objective: "pred_x0"
 
 dataset:
   train_folder: /workspace/RSD/RS-Diffusion/train # <-- Path to your folder with all the .npz files
   test_folder: /workspace/RSD/RS-Diffusion/test # We can use the same for testing/sampling
-  image_size: 128 # <-- Must match the size in the diffusion section
+  image_size: 256 # <-- Must match the size in the diffusion section
   augment_horizontal_flip: false
 
 trainer:
-  train_batch_size: 28
-  test_batch_size: 8
+  train_batch_size:
+    2 # A batch size of 4 should be safe for an 8GB GPU at 256x256.
+    # If you run out of memory, reduce this to 2.
+  test_batch_size: 2
   train_lr: 0.0001
-  train_num_steps: 150000 # Total training steps. 200k is a good long run.
-  gradient_accumulate_every: 3
+  train_num_steps: 200000 # Total training steps. 200k is a good long run.
+  gradient_accumulate_every: 8
   ema_decay: 0.995
   amp: true
-  save_and_sample_every: 25 # Saves a checkpoint every 5000 steps
+  save_and_sample_every: 5000 # Saves a checkpoint every 5000 steps
   results_folder: /workspace/RSD/my_trained_models # <-- Folder where your new .pt files will be saved
   log_path: my_first_training_run # Name for the wandb log
